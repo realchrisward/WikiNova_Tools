@@ -112,6 +112,21 @@ class mw_connection:
                 page.delete(reason="incorrect page title")
                 print(f"deleting page:{page_title}")
 
+    def purge_idexed_books_with_bad_page_titles(self):
+        print("purging")
+        library = self.site.categories["Library"]
+        book_list = [
+            t.name for t in library if t.name != "Template for adding new books"
+        ]
+        for b in book_list:
+            if "--BOOK" not in b:
+                print(f"bad page for {b}")
+
+                page = self.site.pages[b]
+                if page.exists:
+                    page.delete(reason="incorrect page title")
+                    print(f"deleting page:{b}")
+
     def update_from_csv(
         self, input_path=None, no_skip=False, overwrite_differences=False
     ):
@@ -120,7 +135,16 @@ class mw_connection:
             csv_data = [row for row in csv.DictReader(openfile)]
         for row in csv_data:
             page_title = (
-                f'{row["title"]} - {row["author_details"]} - ISBN:{row["isbn"]} --BOOK'
+                (
+                    f'{row["title"]} - {row["author_details"]} - ISBN:{row["isbn"]} --BOOK'
+                )
+                .replace("#", "")
+                .replace("<", "")
+                .replace(">", "")
+                .replace("|", ";")
+                .replace("{", "(")
+                .replace("}", ")")
+                .replace("_", " ")
             )
 
             page = self.site.pages[page_title]
@@ -211,6 +235,8 @@ if __name__ == "__main__":
                 no_skip=args.no_skip,
                 overwrite_differences=args.overwrite,
             )
+    elif args.purge:
+        mw.purge_idexed_books_with_bad_page_titles()
     if args.output:
         mw.pull_books_to_csv(output_path=args.output)
 
